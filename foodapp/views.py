@@ -30,13 +30,14 @@ def register_user(request):
 
         # Create user and profile
         user = User.objects.create_user(username=username, email=email, password=password)
-        profile = UserProfile.objects.create(user=user, role=role, phone=phone, location=location)
+        UserProfile.objects.create(user=user, role=role, phone=phone, location=location)
+
         token, _ = Token.objects.get_or_create(user=user)
 
         return Response({
             "message": "User registered successfully",
             "username": user.username,
-            "role": profile.role,
+            "role": role,
             "token": token.key
         }, status=status.HTTP_201_CREATED)
 
@@ -90,7 +91,7 @@ def get_profile(request):
 @permission_classes([IsAuthenticated])
 def add_food_item(request):
     try:
-        donor_profile = UserProfile.objects.get(user=request.user)
+        user = request.user  # ✅ User instance directly
         data = request.data
 
         food_name = data.get('food_name')
@@ -100,8 +101,9 @@ def add_food_item(request):
         if not all([food_name, quantity, location]):
             return Response({"error": "All fields are required"}, status=status.HTTP_400_BAD_REQUEST)
 
+        # ✅ Assign the logged-in user as donor
         food = FoodItem.objects.create(
-            donor=donor_profile,
+            donor=user,
             food_name=food_name,
             quantity=quantity,
             location=location
