@@ -5,33 +5,38 @@ from rest_framework import status
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
-from .models import UserProfile, FoodItem
-from .serializers import UserProfileSerializer, FoodItemSerializer
 from geopy.distance import geodesic
+from .models import UserProfile, FoodItem, Notification
+from .serializers import UserProfileSerializer, FoodItemSerializer
 from .ai_model.predictor import predict_food_quantity, check_freshness
+from .utils import get_lat_lng_from_address, send_notification_email, create_notification
 import tempfile
 
 
-# -------------------- REGISTER USER --------------------
+# -------------------------------------------------
+# 🧑 REGISTER USER
+# -------------------------------------------------
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register_user(request):
     try:
-        username = request.data.get('username')
-        email = request.data.get('email')
-        password = request.data.get('password')
-        role = request.data.get('role')
-        phone = request.data.get('phone')
-        location = request.data.get('location')
-        latitude = request.data.get('latitude')
-        longitude = request.data.get('longitude')
+        data = request.data
+        username = data.get('username')
+        email = data.get('email')
+        password = data.get('password')
+        role = data.get('role')
+        phone = data.get('phone')
+        location = data.get('location')
+
+        # 🌍 Get coordinates automatically from address
+        lat, lng = get_lat_lng_from_address(location)
 
         # Validation
         if not all([username, email, password, role, phone, location]):
-            return Response({"error": "All fields are required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "All fields are required."}, status=status.HTTP_400_BAD_REQUEST)
 
         if User.objects.filter(username=username).exists():
-            return Response({"error": "Username already taken"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Username already exists."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Create user and profile
         user = User.objects.create_user(username=username, email=email, password=password)
@@ -40,14 +45,14 @@ def register_user(request):
             role=role,
             phone=phone,
             location=location,
-            latitude=latitude,
-            longitude=longitude
+            latitude=lat,
+            longitude=lng
         )
 
         token, _ = Token.objects.get_or_create(user=user)
 
         return Response({
-            "message": "User registered successfully",
+            "message": "User registered successfully.",
             "username": user.username,
             "role": role,
             "token": token.key
@@ -57,7 +62,9 @@ def register_user(request):
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-# -------------------- LOGIN USER --------------------
+# -------------------------------------------------
+# 🔐 LOGIN USER
+# -------------------------------------------------
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_user(request):
@@ -66,17 +73,17 @@ def login_user(request):
         password = request.data.get('password')
 
         if not username or not password:
-            return Response({"error": "Username and password required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Username and password required."}, status=status.HTTP_400_BAD_REQUEST)
 
         user = authenticate(username=username, password=password)
         if not user:
-            return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({"error": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)
 
         token, _ = Token.objects.get_or_create(user=user)
         profile = UserProfile.objects.get(user=user)
 
         return Response({
-            "message": "Login successful",
+            "message": "Login successful.",
             "username": user.username,
             "role": profile.role,
             "token": token.key
@@ -86,7 +93,9 @@ def login_user(request):
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-# -------------------- PROFILE VIEW --------------------
+# -------------------------------------------------
+# 👤 GET PROFILE
+# -------------------------------------------------
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_profile(request):
@@ -95,10 +104,12 @@ def get_profile(request):
         serializer = UserProfileSerializer(profile)
         return Response(serializer.data, status=status.HTTP_200_OK)
     except UserProfile.DoesNotExist:
-        return Response({"error": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Profile not found."}, status=status.HTTP_404_NOT_FOUND)
 
 
-# -------------------- ADD FOOD ITEM (AI Integrated) --------------------
+# -------------------------------------------------
+# 🥘 ADD FOOD ITEM (AI + Location)
+# -------------------------------------------------
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def add_food_item(request):
@@ -109,12 +120,14 @@ def add_food_item(request):
         food_name = data.get('food_name')
         quantity = data.get('quantity')
         location = data.get('location')
-        latitude = data.get('latitude')
-        longitude = data.get('longitude')
         image = request.FILES.get('image')
 
         if not all([food_name, quantity, location]):
-            return Response({"error": "All fields are required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Food name, quantity, and location are required."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # 🌍 Get coordinates using Google Maps API
+        lat, lng = get_lat_lng_from_address(location)
 
         # Create food item
         food = FoodItem.objects.create(
@@ -122,12 +135,12 @@ def add_food_item(request):
             food_name=food_name,
             quantity=quantity,
             location=location,
-            latitude=latitude,
-            longitude=longitude,
+            latitude=lat,
+            longitude=lng,
             image=image
         )
 
-        # 🔥 AI Model Integration
+        # 🤖 AI Model Integration
         if food.image:
             image_path = food.image.path
             food.food_quantity_estimate = predict_food_quantity(image_path)
@@ -144,35 +157,63 @@ def add_food_item(request):
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-# -------------------- AVAILABLE FOOD LIST --------------------
+# -------------------------------------------------
+# 📋 AVAILABLE FOOD LIST
+# -------------------------------------------------
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def available_food(request):
-    foods = FoodItem.objects.filter(is_claimed=False)
+    foods = FoodItem.objects.filter(is_claimed=False).order_by('-created_at')
     serializer = FoodItemSerializer(foods, many=True)
     return Response({"available_foods": serializer.data}, status=status.HTTP_200_OK)
 
 
-# -------------------- CLAIM FOOD --------------------
+# -------------------------------------------------
+# 🧾 CLAIM FOOD (Email + In-App Notification)
+# -------------------------------------------------
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def claim_food(request, food_id):
     try:
         food = FoodItem.objects.get(id=food_id, is_claimed=False)
         food.is_claimed = True
+        food.claimed_by = request.user
         food.save()
-        return Response({"message": "Food claimed successfully!"}, status=status.HTTP_200_OK)
+
+        donor = food.donor
+        ngo = request.user
+
+        # ✉️ Email Notification
+        subject = "Your food donation was claimed 🎉"
+        message = (
+            f"Hi {donor.username},\n\n"
+            f"Your food item '{food.food_name}' was successfully claimed by {ngo.username}.\n"
+            f"Quantity: {food.quantity}\n"
+            f"Location: {food.location}\n\n"
+            f"Thank you for your valuable contribution 🙏"
+        )
+        send_notification_email(subject, message, [donor.email])
+
+        # 🔔 In-app Notification
+        create_notification(donor, f"Your food '{food.food_name}' was claimed by {ngo.username} ✅")
+
+        return Response({"message": "Food claimed successfully and donor notified!"}, status=status.HTTP_200_OK)
+
     except FoodItem.DoesNotExist:
-        return Response({"error": "Food not available or already claimed"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Food not available or already claimed."}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-# -------------------- ANALYZE FOOD IMAGE (AI Prediction) --------------------
+# -------------------------------------------------
+# 🧠 ANALYZE FOOD IMAGE (AI Prediction)
+# -------------------------------------------------
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def analyze_food_image(request):
     try:
         if 'image' not in request.FILES:
-            return Response({"error": "Image file is required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Image file is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         image = request.FILES['image']
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_img:
@@ -184,7 +225,7 @@ def analyze_food_image(request):
         freshness_score = check_freshness(temp_path)
 
         return Response({
-            "message": "Image analyzed successfully",
+            "message": "Image analyzed successfully.",
             "food_quantity_estimate": float(quantity_estimate),
             "freshness_score": float(freshness_score)
         }, status=status.HTTP_200_OK)
@@ -193,14 +234,16 @@ def analyze_food_image(request):
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-# -------------------- NEARBY FOOD (within 5 km radius using GPS) --------------------
+# -------------------------------------------------
+# 📍 NEARBY FOOD (within 5 km)
+# -------------------------------------------------
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def nearby_food(request):
     try:
         user_profile = UserProfile.objects.get(user=request.user)
         if not (user_profile.latitude and user_profile.longitude):
-            return Response({"error": "User location not set"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "User location not set."}, status=status.HTTP_400_BAD_REQUEST)
 
         user_location = (float(user_profile.latitude), float(user_profile.longitude))
         nearby_foods = []
@@ -209,8 +252,8 @@ def nearby_food(request):
             if food.latitude and food.longitude:
                 food_location = (float(food.latitude), float(food.longitude))
                 distance = geodesic(user_location, food_location).km
-                if distance <= 5:  # within 5 km
-                    data = {
+                if distance <= 5:
+                    nearby_foods.append({
                         "id": food.id,
                         "food_name": food.food_name,
                         "quantity": food.quantity,
@@ -218,13 +261,56 @@ def nearby_food(request):
                         "latitude": food.latitude,
                         "longitude": food.longitude,
                         "distance_km": round(distance, 2)
-                    }
-                    nearby_foods.append(data)
+                    })
 
         return Response({
             "user_location": user_location,
             "nearby_foods": nearby_foods
         }, status=status.HTTP_200_OK)
 
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# -------------------------------------------------
+# 🔔 GET NOTIFICATIONS
+# -------------------------------------------------
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_notifications(request):
+    try:
+        notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+        data = [
+            {
+                "id": n.id,
+                "message": n.message,
+                "created_at": n.created_at,
+                "is_read": n.is_read
+            }
+            for n in notifications
+        ]
+        return Response({"notifications": data}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+# -------------------------------------------------
+# 📍 UPDATE USER LOCATION (Live)
+# -------------------------------------------------
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def update_user_location(request):
+    try:
+        lat = request.data.get('latitude')
+        lng = request.data.get('longitude')
+
+        if not lat or not lng:
+            return Response({"error": "Latitude and longitude required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        profile = UserProfile.objects.get(user=request.user)
+        profile.latitude = lat
+        profile.longitude = lng
+        profile.save()
+
+        return Response({"message": "Location updated successfully!"}, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
