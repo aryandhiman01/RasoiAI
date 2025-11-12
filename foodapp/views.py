@@ -7,6 +7,9 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from .models import UserProfile, FoodItem
 from .serializers import UserProfileSerializer, FoodItemSerializer
+from geopy.distance import geodesic
+from .ai_model.predictor import predict_food_quantity, check_freshness
+import tempfile
 
 
 # -------------------- REGISTER USER --------------------
@@ -20,6 +23,8 @@ def register_user(request):
         role = request.data.get('role')
         phone = request.data.get('phone')
         location = request.data.get('location')
+        latitude = request.data.get('latitude')
+        longitude = request.data.get('longitude')
 
         # Validation
         if not all([username, email, password, role, phone, location]):
@@ -30,7 +35,14 @@ def register_user(request):
 
         # Create user and profile
         user = User.objects.create_user(username=username, email=email, password=password)
-        UserProfile.objects.create(user=user, role=role, phone=phone, location=location)
+        UserProfile.objects.create(
+            user=user,
+            role=role,
+            phone=phone,
+            location=location,
+            latitude=latitude,
+            longitude=longitude
+        )
 
         token, _ = Token.objects.get_or_create(user=user)
 
@@ -86,34 +98,48 @@ def get_profile(request):
         return Response({"error": "Profile not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
-# -------------------- ADD FOOD ITEM --------------------
+# -------------------- ADD FOOD ITEM (AI Integrated) --------------------
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def add_food_item(request):
     try:
-        user = request.user  # ✅ User instance directly
+        user = request.user
         data = request.data
 
         food_name = data.get('food_name')
         quantity = data.get('quantity')
         location = data.get('location')
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+        image = request.FILES.get('image')
 
         if not all([food_name, quantity, location]):
             return Response({"error": "All fields are required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # ✅ Assign the logged-in user as donor
+        # Create food item
         food = FoodItem.objects.create(
             donor=user,
             food_name=food_name,
             quantity=quantity,
-            location=location
+            location=location,
+            latitude=latitude,
+            longitude=longitude,
+            image=image
         )
+
+        # 🔥 AI Model Integration
+        if food.image:
+            image_path = food.image.path
+            food.food_quantity_estimate = predict_food_quantity(image_path)
+            food.freshness_score = check_freshness(image_path)
+            food.save()
 
         serializer = FoodItemSerializer(food)
         return Response({
-            "message": "Food item added successfully!",
+            "message": "Food item added successfully with AI insights!",
             "data": serializer.data
         }, status=status.HTTP_201_CREATED)
+
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -138,3 +164,67 @@ def claim_food(request, food_id):
         return Response({"message": "Food claimed successfully!"}, status=status.HTTP_200_OK)
     except FoodItem.DoesNotExist:
         return Response({"error": "Food not available or already claimed"}, status=status.HTTP_404_NOT_FOUND)
+
+
+# -------------------- ANALYZE FOOD IMAGE (AI Prediction) --------------------
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def analyze_food_image(request):
+    try:
+        if 'image' not in request.FILES:
+            return Response({"error": "Image file is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        image = request.FILES['image']
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_img:
+            for chunk in image.chunks():
+                temp_img.write(chunk)
+            temp_path = temp_img.name
+
+        quantity_estimate = predict_food_quantity(temp_path)
+        freshness_score = check_freshness(temp_path)
+
+        return Response({
+            "message": "Image analyzed successfully",
+            "food_quantity_estimate": float(quantity_estimate),
+            "freshness_score": float(freshness_score)
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# -------------------- NEARBY FOOD (within 5 km radius using GPS) --------------------
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def nearby_food(request):
+    try:
+        user_profile = UserProfile.objects.get(user=request.user)
+        if not (user_profile.latitude and user_profile.longitude):
+            return Response({"error": "User location not set"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user_location = (float(user_profile.latitude), float(user_profile.longitude))
+        nearby_foods = []
+
+        for food in FoodItem.objects.filter(is_claimed=False):
+            if food.latitude and food.longitude:
+                food_location = (float(food.latitude), float(food.longitude))
+                distance = geodesic(user_location, food_location).km
+                if distance <= 5:  # within 5 km
+                    data = {
+                        "id": food.id,
+                        "food_name": food.food_name,
+                        "quantity": food.quantity,
+                        "location": food.location,
+                        "latitude": food.latitude,
+                        "longitude": food.longitude,
+                        "distance_km": round(distance, 2)
+                    }
+                    nearby_foods.append(data)
+
+        return Response({
+            "user_location": user_location,
+            "nearby_foods": nearby_foods
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

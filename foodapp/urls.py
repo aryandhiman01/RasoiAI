@@ -8,4 +8,6 @@ urlpatterns = [
     path('food/add/', views.add_food_item, name='add_food_item'),
     path('food/list/', views.available_food, name='available_food'),
     path('food/claim/<int:food_id>/', views.claim_food, name='claim_food'),
+    path('analyze-food-image/', views.analyze_food_image),
+    path('food/nearby/', views.nearby_food, name='nearby_food'),
 ]
