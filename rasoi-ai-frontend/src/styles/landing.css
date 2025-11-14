@@ -1,0 +1,208 @@
+:root {
+  --primary: #ff7b00;
+  --secondary: #fff6e9;
+  --dark: #222;
+  --light: #666;
+  --radius: 16px;
+  --shadow: 0 6px 20px rgba(0,0,0,0.1);
+}
+
+.landing-container {
+  background: var(--secondary);
+  font-family: "Poppins";
+  overflow-x: hidden;
+}
+
+/* -----------------------------------------
+                 HERO
+------------------------------------------ */
+.hero {
+  padding: 100px 8%;
+  display: flex;
+  justify-content: center;
+  text-align: center;
+}
+
+.hero-left h1 {
+  font-size: 75px;
+  font-weight: 700;
+  color: var(--dark);
+  line-height: 1.2;
+}
+
+.hero-left span {
+  color: var(--primary);
+}
+
+.subtitle {
+  margin-top: 12px;
+  color: var(--light);
+  font-size: 18px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hero-btns {
+  margin-top: 25px;
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.btn {
+  padding: 13px 28px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.primary {
+  background: var(--primary);
+  color: white;
+}
+
+.outline {
+  border: 2px solid var(--primary);
+  background: transparent;
+  color: var(--primary);
+}
+
+.btn:hover {
+  transform: translateY(-3px);
+}
+
+/* -----------------------------------------
+           WHITE PREMIUM STATS
+------------------------------------------ */
+.stats-white {
+  margin: 60px auto;
+  width: 80%;
+  display: flex;
+  gap: 25px;
+  justify-content: center;
+}
+
+.stat-box {
+  background: #fff;
+  padding: 30px 20px;
+  flex: 1;
+  border-radius: var(--radius);
+  text-align: center;
+  box-shadow: var(--shadow);
+  transition: 0.3s;
+}
+
+.stat-box:hover {
+  transform: translateY(-6px);
+}
+
+.stat-box h2 {
+  font-size: 38px;
+  color: var(--primary);
+}
+
+/* -----------------------------------------
+              WHY SECTION
+------------------------------------------ */
+.why {
+  text-align: center;
+  padding: 80px 7%;
+}
+
+.why h2 {
+  font-size: 36px;
+}
+
+.why h2 span {
+  color: var(--primary);
+}
+
+.why-grid {
+  margin-top: 40px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 25px;
+}
+
+.why-box {
+  background: #fff;
+  padding: 25px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  text-align: left;
+  transition: 0.3s;
+}
+
+.why-box:hover {
+  transform: translateY(-6px);
+}
+
+/* -----------------------------------------
+              TESTIMONIALS
+------------------------------------------ */
+.testimonials {
+  padding: 70px 7%;
+  text-align: center;
+}
+
+.slider {
+  margin-top: 35px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+
+.slide {
+  background: #fff;
+  padding: 22px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  text-align: center;
+  transition: 0.3s;
+}
+
+.slide:hover {
+  transform: translateY(-6px);
+}
+
+/* -----------------------------------------
+               ANIMATIONS
+------------------------------------------ */
+.fade-up {
+  opacity: 0;
+  transform: translateY(35px);
+  transition: 0.7s ease-out;
+}
+
+.fade-up.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* -----------------------------------------
+            RESPONSIVE
+------------------------------------------ */
+@media (max-width: 900px) {
+  .why-grid,
+  .slider {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stats-white {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 600px) {
+  .why-grid,
+  .slider {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-left h1 {
+    font-size: 40px;
+  }
+}

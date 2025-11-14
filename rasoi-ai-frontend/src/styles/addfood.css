@@ -1,0 +1,202 @@
+:root{
+  --primary: #ff7b00;
+  --secondary: #fff8ef;
+  --dark: #222;
+  --light: #777;
+  --radius: 14px;
+  --shadow: 0 6px 28px rgba(0,0,0,0.08);
+  --glass-bg: rgba(255,255,255,0.88);
+}
+
+/* Container */
+.addfood-wrap{
+  min-height: calc(100vh - 80px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #fffaf5 0%, #fff6ee 100%);
+  padding: 40px 20px;
+  font-family: "Poppins", sans-serif;
+}
+
+/* Card */
+.addfood-card{
+  width: 760px;
+  max-width: 96%;
+  border-radius: 18px;
+  background: var(--glass-bg);
+  box-shadow: var(--shadow);
+  padding: 28px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.03);
+}
+
+/* header */
+.card-head{
+  text-align: left;
+  margin-bottom: 12px;
+}
+.card-head h1{
+  margin: 0;
+  color: var(--primary);
+  font-size: 26px;
+}
+.card-head .subtitle{
+  margin: 6px 0 0 0;
+  color: var(--dark);
+  opacity: 0.85;
+  font-size: 14px;
+}
+
+/* form layout */
+.form{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+/* image uploader */
+.image-uploader{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 180px;
+  border-radius: 12px;
+  border: 1px dashed rgba(0,0,0,0.06);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.9));
+}
+.image-uploader input[type="file"]{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.image-placeholder{
+  text-align: center;
+  color: var(--light);
+  font-size: 14px;
+}
+.image-placeholder .camera-emoji{ font-size: 28px; margin-bottom: 6px; }
+.image-preview{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* fields */
+.field{
+  text-align: left;
+}
+.field label{
+  display: block;
+  font-size: 13px;
+  color: var(--dark);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.field input[type="text"],
+.field input[type="number"]{
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.06);
+  outline: none;
+  font-size: 14px;
+  transition: box-shadow .18s, border-color .18s;
+}
+.field input:focus{
+  border-color: var(--primary);
+  box-shadow: 0 6px 18px rgba(255,123,0,0.08);
+}
+
+/* suggestions */
+.suggestions{
+  margin-top: 10px;
+}
+.chip{
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 18px;
+  margin: 6px 6px 0 0;
+  background: #fff6ef;
+  border: 1px solid rgba(255,123,0,0.15);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--dark);
+}
+.chip:hover{
+  background: var(--primary);
+  color: white;
+  transform: translateY(-2px);
+}
+
+/* two columns row */
+.two-col{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ai panel placeholder */
+.ai-panel{
+  margin-top: 6px;
+  padding: 12px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #fff4e6, #fff8f2);
+  border-left: 4px solid var(--primary);
+  color: #6b4b2d;
+  font-size: 14px;
+}
+
+/* actions */
+.actions{
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+  align-items: center;
+}
+.btn{
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+}
+.btn.primary{
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 10px 24px rgba(255,123,0,0.12);
+}
+.btn.primary:disabled{
+  opacity: 0.6;
+  cursor: default;
+}
+.btn.ghost{
+  background: transparent;
+  border: 1px solid rgba(0,0,0,0.06);
+  color: var(--dark);
+}
+
+/* status messages */
+.status{
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: 600;
+  display: inline-block;
+}
+.status.success{ background: #eaf8f0; color: #0f8b5d; border:1px solid rgba(15,139,93,0.08); }
+.status.error{ background: #fff1f1; color: #b12b2b; border:1px solid rgba(177,43,43,0.06); }
+.status.info{ background: #fff8e6; color: #6b4b2d; border:1px solid rgba(255,123,0,0.06); }
+
+/* responsive */
+@media (max-width: 720px){
+  .addfood-card{ padding: 20px; }
+  .two-col{ grid-template-columns: 1fr; }
+  .image-uploader{ height: 150px; }
+}

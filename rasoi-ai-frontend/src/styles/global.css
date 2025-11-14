@@ -1,0 +1,132 @@
+/* ----------------------------- */
+/* 🌟 RasoiAI Global Premium UI  */
+/* ----------------------------- */
+
+:root {
+  --primary: #ff7b00;
+  --primary-light: #ff9c3f;
+  --bg: #fdf7f0;
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.35);
+  --text-dark: #222;
+  --text-light: #555;
+  --radius: 18px;
+  --shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+  --hover-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  --transition: 0.25s ease;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  font-family: "Poppins", sans-serif;
+  overflow-x: hidden;
+}
+
+/* ----------------------------- */
+/* 🎛 Premium Buttons            */
+/* ----------------------------- */
+
+button, .btn {
+  background: var(--primary);
+  padding: 12px 28px;
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 600;
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+}
+
+button:hover, .btn:hover {
+  background: var(--primary-light);
+  transform: translateY(-4px);
+  box-shadow: var(--hover-shadow);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--primary);
+  border: 2px solid var(--primary);
+}
+
+.btn-outline:hover {
+  background: var(--primary);
+  color: white;
+}
+
+/* ----------------------------- */
+/* 🟧 Glass Card                 */
+/* ----------------------------- */
+
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 30px;
+  transition: var(--transition);
+}
+
+.glass-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--hover-shadow);
+}
+
+/* ----------------------------- */
+/* ✨ Fade Animations            */
+/* ----------------------------- */
+
+.fade-up {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: 0.7s ease;
+}
+
+.fade-up.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ----------------------------- */
+/* 🧊 Divider                    */
+/* ----------------------------- */
+
+.divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(0,0,0,0.1);
+  margin: 25px 0;
+}
+
+/* ----------------------------- */
+/* 🎨 Input Fields               */
+/* ----------------------------- */
+
+input, select, textarea {
+  width: 100%;
+  padding: 12px 15px;
+  margin-top: 10px;
+  border-radius: var(--radius);
+  border: 1px solid #ddd;
+  background: white;
+  outline: none;
+  font-size: 15px;
+  transition: var(--transition);
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 8px rgba(255, 123, 0, 0.3);
+}
+
+/* ----------------------------- */
+/* 🌐 Smooth Scroll              */
+/* ----------------------------- */
+
+html {
+  scroll-behavior: smooth;
+}
