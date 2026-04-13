@@ -10,7 +10,6 @@ def predict_food_quantity(image_path):
     dummy_prediction = np.random.uniform(1, 10)  # Random between 1–10 servings
     return round(dummy_prediction, 2)
 
-
 def check_freshness(image_path):
     """
     Placeholder freshness logic (based on brightness)
